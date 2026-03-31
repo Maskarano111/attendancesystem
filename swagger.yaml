@@ -1,0 +1,165 @@
+openapi: 3.0.0
+info:
+  title: Smart Student Attendance System API
+  version: 1.0.0
+  description: API documentation for the QR Code-based Smart Student Attendance System
+servers:
+  - url: /api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, lecturer, admin, department_head]
+        department:
+          type: string
+    Class:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        lecturer_id:
+          type: string
+        schedule:
+          type: string
+        department:
+          type: string
+        capacity:
+          type: integer
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+  /auth/register:
+    post:
+      summary: Register new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password, role]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                department:
+                  type: string
+      responses:
+        '201':
+          description: User created
+  /attendance/mark:
+    post:
+      summary: Mark attendance via QR code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qr_data]
+              properties:
+                qr_data:
+                  type: string
+      responses:
+        '201':
+          description: Attendance marked successfully
+  /attendance/records:
+    get:
+      summary: Get attendance records
+      responses:
+        '200':
+          description: List of attendance records
+  /classes:
+    get:
+      summary: Get all classes
+      responses:
+        '200':
+          description: List of classes
+    post:
+      summary: Create a new class
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Class'
+      responses:
+        '201':
+          description: Class created
+  /qr/generate:
+    post:
+      summary: Generate QR code for a class session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class_id, date, start_time, end_time]
+              properties:
+                class_id:
+                  type: string
+                date:
+                  type: string
+                start_time:
+                  type: string
+                end_time:
+                  type: string
+      responses:
+        '201':
+          description: QR code generated
+  /admin/users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: List of users
+  /admin/reports:
+    get:
+      summary: Get system reports
+      responses:
+        '200':
+          description: System reports and statistics

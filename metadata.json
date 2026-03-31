@@ -1,0 +1,5 @@
+{
+  "name": "Smart Student Attendance System",
+  "description": "A modern, secure, and scalable QR Code-based student attendance system with role-based access control and analytics.",
+  "requestFramePermissions": ["camera"]
+}
