@@ -13,5 +13,5 @@
 
 [context.production.environment]
   NODE_ENV = "production"
-  # Set this to your backend URL, e.g., https://your-backend.up.railway.app/api
-  VITE_API_URL = ""
+  # Set this to your backend URL after deploying to Railway (see instructions below)
+  VITE_API_URL = "https://your-app-name.railway.app/api"
