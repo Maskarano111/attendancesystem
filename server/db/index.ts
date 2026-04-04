@@ -1,44 +1,17 @@
 import initSqlJs, { Database as SqlJsDatabase } from "sql.js";
-import path from "path";
-import fs from "fs";
 import bcrypt from "bcryptjs";
 
 let dbInstance: SqlJsDatabase | null = null;
 let SQL: any = null;
 
+// Initialize sql.js - this happens once on first use
 async function initSql() {
   if (SQL) return SQL;
   SQL = await initSqlJs();
   return SQL;
 }
 
-function getDataPath() {
-  const dbDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-  return path.join(dbDir, "database.json");
-}
-
-async function loadDatabase() {
-  const SQL = await initSql();
-  const dataPath = getDataPath();
-  
-  if (fs.existsSync(dataPath)) {
-    const data = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
-    return new SQL.Database(data);
-  }
-  return new SQL.Database();
-}
-
-function saveDatabase(db: SqlJsDatabase) {
-  const data = db.export();
-  const arr = Array.from(data);
-  const dataPath = getDataPath();
-  fs.writeFileSync(dataPath, JSON.stringify(arr));
-}
-
-// Wrapper to provide sqlite-compatible API
+// Simple in-memory database wrapper for sql.js
 class DatabaseWrapper {
   private db: SqlJsDatabase;
 
@@ -50,53 +23,66 @@ class DatabaseWrapper {
     const db = this.db;
     return {
       get: (...params: any[]) => {
-        const stmt = db.prepare(sql);
-        stmt.bind(params);
-        if (stmt.step()) {
-          const result = stmt.getAsObject();
+        try {
+          const stmt = db.prepare(sql);
+          stmt.bind(params);
+          if (stmt.step()) {
+            const result = stmt.getAsObject();
+            stmt.free();
+            return result;
+          }
           stmt.free();
-          return result;
+          return undefined;
+        } catch (err) {
+          console.error("SQL error in get():", err, sql);
+          return undefined;
         }
-        stmt.free();
-        return undefined;
       },
       all: (...params: any[]) => {
-        const stmt = db.prepare(sql);
-        stmt.bind(params);
-        const results = [];
-        while (stmt.step()) {
-          results.push(stmt.getAsObject());
+        try {
+          const stmt = db.prepare(sql);
+          stmt.bind(params);
+          const results: any[] = [];
+          while (stmt.step()) {
+            results.push(stmt.getAsObject());
+          }
+          stmt.free();
+          return results;
+        } catch (err) {
+          console.error("SQL error in all():", err, sql);
+          return [];
         }
-        stmt.free();
-        return results;
       },
       run: (...params: any[]) => {
-        const stmt = db.prepare(sql);
-        stmt.bind(params);
-        stmt.step();
-        stmt.free();
-        saveDatabase(db);
-        return { changes: 1 };
+        try {
+          const stmt = db.prepare(sql);
+          stmt.bind(params);
+          stmt.step();
+          stmt.free();
+          return { changes: 1 };
+        } catch (err) {
+          console.error("SQL error in run():", err, sql);
+          return { changes: 0 };
+        }
       }
     };
   }
 
   exec(sql: string) {
-    const statements = sql.split(';').filter((s) => s.trim());
-    for (const statement of statements) {
-      if (statement.trim()) {
-        this.db.run(statement.trim());
-      }
+    try {
+      this.db.run(sql);
+    } catch (err) {
+      console.error("SQL exec error:", err, sql);
     }
-    saveDatabase(this.db);
   }
 }
 
-// Async wrapper for compatibility with existing code
+// Initialize database once
 export async function getDb(): Promise<any> {
   if (dbInstance) return new DatabaseWrapper(dbInstance);
   
-  dbInstance = await loadDatabase();
+  const SQL = await initSql();
+  dbInstance = new SQL.Database();
   return new DatabaseWrapper(dbInstance);
 }
 
