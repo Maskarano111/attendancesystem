@@ -3,16 +3,16 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
-import { initializeDatabase } from "./server/db/index.js";
-import authRoutes from "./server/routes/auth.js";
-import attendanceRoutes from "./server/routes/attendance.js";
-import classRoutes from "./server/routes/classes.js";
-import qrRoutes from "./server/routes/qr.js";
-import adminRoutes from "./server/routes/admin.js";
-import { errorHandler } from "./server/middleware/error.js";
-import { requestLogger } from "./server/middleware/requestLogger.js";
-import { sanitize } from "./server/middleware/sanitize.js";
-import logger from "./server/middleware/logger.js";
+import { initializeDatabase } from "./server/db/index";
+import authRoutes from "./server/routes/auth";
+import attendanceRoutes from "./server/routes/attendance";
+import classRoutes from "./server/routes/classes";
+import qrRoutes from "./server/routes/qr";
+import adminRoutes from "./server/routes/admin";
+import { errorHandler } from "./server/middleware/error";
+import { requestLogger } from "./server/middleware/requestLogger";
+import { sanitize } from "./server/middleware/sanitize";
+import logger from "./server/middleware/logger";
 
 dotenv.config();
 

@@ -1,8 +1,8 @@
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
-import { getDb } from "../db/index.js";
-import { AppError } from "../middleware/error.js";
-import { authenticate, restrictTo, AuthRequest } from "../middleware/auth.js";
+import { getDb } from "../db/index";
+import { AppError } from "../middleware/error";
+import { authenticate, restrictTo, AuthRequest } from "../middleware/auth";
 import { z } from "zod";
 
 const router = express.Router();

@@ -3,8 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import rateLimit from "express-rate-limit";
-import { getDb } from "../db/index.js";
-import { AppError } from "../middleware/error.js";
+import { getDb } from "../db/index";
+import { AppError } from "../middleware/error";
 import { z } from "zod";
 
 const router = express.Router();

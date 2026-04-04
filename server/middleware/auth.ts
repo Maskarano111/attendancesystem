@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { AppError } from "./error.js";
-import { getDb } from "../db/index.js";
+import { AppError } from "./error";
+import { getDb } from "../db/index";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-prod";
 
