@@ -1,48 +1,107 @@
-import Database from "better-sqlite3";
+import initSqlJs, { Database as SqlJsDatabase } from "sql.js";
 import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 
-let dbInstance: Database.Database | null = null;
+let dbInstance: SqlJsDatabase | null = null;
+let SQL: any = null;
 
-function getDbSync(): Database.Database {
-  if (dbInstance) return dbInstance;
-  
+async function initSql() {
+  if (SQL) return SQL;
+  SQL = await initSqlJs();
+  return SQL;
+}
+
+function getDataPath() {
   const dbDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
+  return path.join(dbDir, "database.json");
+}
 
-  const rawDb = new Database(path.join(dbDir, "database.sqlite"));
+async function loadDatabase() {
+  const SQL = await initSql();
+  const dataPath = getDataPath();
   
-  // Wrap the database object to provide sqlite-compatible API
-  const wrappedDb = {
-    ...rawDb,
-    get: (sql: string, params?: any[]): any => {
-      return rawDb.prepare(sql).get(...(params || []));
-    },
-    all: (sql: string, params?: any[]): any[] => {
-      return rawDb.prepare(sql).all(...(params || []));
-    },
-    run: (sql: string, params?: any[]): any => {
-      return rawDb.prepare(sql).run(...(params || []));
-    },
-    exec: (sql: string): any => {
-      return rawDb.exec(sql);
+  if (fs.existsSync(dataPath)) {
+    const data = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
+    return new SQL.Database(data);
+  }
+  return new SQL.Database();
+}
+
+function saveDatabase(db: SqlJsDatabase) {
+  const data = db.export();
+  const arr = Array.from(data);
+  const dataPath = getDataPath();
+  fs.writeFileSync(dataPath, JSON.stringify(arr));
+}
+
+// Wrapper to provide sqlite-compatible API
+class DatabaseWrapper {
+  private db: SqlJsDatabase;
+
+  constructor(db: SqlJsDatabase) {
+    this.db = db;
+  }
+
+  prepare(sql: string) {
+    const db = this.db;
+    return {
+      get: (...params: any[]) => {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        if (stmt.step()) {
+          const result = stmt.getAsObject();
+          stmt.free();
+          return result;
+        }
+        stmt.free();
+        return undefined;
+      },
+      all: (...params: any[]) => {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        const results = [];
+        while (stmt.step()) {
+          results.push(stmt.getAsObject());
+        }
+        stmt.free();
+        return results;
+      },
+      run: (...params: any[]) => {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        stmt.step();
+        stmt.free();
+        saveDatabase(db);
+        return { changes: 1 };
+      }
+    };
+  }
+
+  exec(sql: string) {
+    const statements = sql.split(';').filter((s) => s.trim());
+    for (const statement of statements) {
+      if (statement.trim()) {
+        this.db.run(statement.trim());
+      }
     }
-  } as any;
-  
-  dbInstance = wrappedDb;
-  return dbInstance;
+    saveDatabase(this.db);
+  }
 }
 
 // Async wrapper for compatibility with existing code
 export async function getDb(): Promise<any> {
-  return getDbSync();
+  if (dbInstance) return new DatabaseWrapper(dbInstance);
+  
+  dbInstance = await loadDatabase();
+  return new DatabaseWrapper(dbInstance);
 }
 
 export async function initializeDatabase() {
-  const db = getDbSync();
+  const db = await getDb();
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS Users (
@@ -87,6 +146,9 @@ export async function initializeDatabase() {
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       status TEXT DEFAULT 'present' CHECK(status IN ('present', 'late', 'absent', 'excused')),
       marked_by TEXT NOT NULL,
+      student_name TEXT,
+      student_index_number TEXT,
+      student_email TEXT,
       FOREIGN KEY (student_id) REFERENCES Users(id),
       FOREIGN KEY (class_id) REFERENCES Classes(id),
       FOREIGN KEY (session_id) REFERENCES Sessions(id),
@@ -109,30 +171,6 @@ export async function initializeDatabase() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
-
-  // Lightweight migrations
-  const userColumns = db.prepare("PRAGMA table_info(Users)").all();
-  const userColumnNames = userColumns.map((c: any) => c.name);
-  if (!userColumnNames.includes("is_active")) {
-    db.exec("ALTER TABLE Users ADD COLUMN is_active INTEGER DEFAULT 1");
-  }
-  db.exec("UPDATE Users SET is_active = 1 WHERE is_active IS NULL");
-
-  // Add student verification columns to Attendance table
-  const attendanceColumns = db.prepare("PRAGMA table_info(Attendance)").all();
-  const attendanceColumnNames = attendanceColumns.map((c: any) => c.name);
-  if (!attendanceColumnNames.includes("student_name")) {
-    db.exec("ALTER TABLE Attendance ADD COLUMN student_name TEXT");
-  }
-  if (!attendanceColumnNames.includes("student_index_number")) {
-    db.exec("ALTER TABLE Attendance ADD COLUMN student_index_number TEXT");
-  }
-  if (!attendanceColumnNames.includes("student_email")) {
-    db.exec("ALTER TABLE Attendance ADD COLUMN student_email TEXT");
-  }
-
-  // Enable WAL mode for better concurrency
-  db.exec("PRAGMA journal_mode = WAL");
 
   // Create indexes for performance
   db.exec(`
