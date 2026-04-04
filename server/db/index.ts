@@ -70,7 +70,12 @@ class DatabaseWrapper {
 
   exec(sql: string) {
     try {
-      this.db.run(sql);
+      const statements = sql.split(';').filter(s => s.trim());
+      for (const stmt of statements) {
+        if (stmt.trim()) {
+          this.db.run(stmt);
+        }
+      }
     } catch (err) {
       console.error("SQL exec error:", err, sql);
     }
