@@ -1,12 +1,11 @@
-import sqlite3 from "sqlite3";
-import { open, Database } from "sqlite";
+import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 
-let dbInstance: Database | null = null;
+let dbInstance: Database.Database | null = null;
 
-export async function getDb(): Promise<Database> {
+function getDbSync(): Database.Database {
   if (dbInstance) return dbInstance;
   
   const dbDir = path.join(process.cwd(), "data");
@@ -14,18 +13,38 @@ export async function getDb(): Promise<Database> {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  dbInstance = await open({
-    filename: path.join(dbDir, "database.sqlite"),
-    driver: sqlite3.Database
-  });
-
+  const rawDb = new Database(path.join(dbDir, "database.sqlite"));
+  
+  // Wrap the database object to provide sqlite-compatible API
+  const wrappedDb = {
+    ...rawDb,
+    get: (sql: string, params?: any[]): any => {
+      return rawDb.prepare(sql).get(...(params || []));
+    },
+    all: (sql: string, params?: any[]): any[] => {
+      return rawDb.prepare(sql).all(...(params || []));
+    },
+    run: (sql: string, params?: any[]): any => {
+      return rawDb.prepare(sql).run(...(params || []));
+    },
+    exec: (sql: string): any => {
+      return rawDb.exec(sql);
+    }
+  } as any;
+  
+  dbInstance = wrappedDb;
   return dbInstance;
 }
 
-export async function initializeDatabase() {
-  const db = await getDb();
+// Async wrapper for compatibility with existing code
+export async function getDb(): Promise<any> {
+  return getDbSync();
+}
 
-  await db.exec(`
+export async function initializeDatabase() {
+  const db = getDbSync();
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS Users (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
@@ -92,31 +111,31 @@ export async function initializeDatabase() {
   `);
 
   // Lightweight migrations
-  const userColumns = await db.all("PRAGMA table_info(Users)");
+  const userColumns = db.prepare("PRAGMA table_info(Users)").all();
   const userColumnNames = userColumns.map((c: any) => c.name);
   if (!userColumnNames.includes("is_active")) {
-    await db.exec("ALTER TABLE Users ADD COLUMN is_active INTEGER DEFAULT 1");
+    db.exec("ALTER TABLE Users ADD COLUMN is_active INTEGER DEFAULT 1");
   }
-  await db.exec("UPDATE Users SET is_active = 1 WHERE is_active IS NULL");
+  db.exec("UPDATE Users SET is_active = 1 WHERE is_active IS NULL");
 
   // Add student verification columns to Attendance table
-  const attendanceColumns = await db.all("PRAGMA table_info(Attendance)");
+  const attendanceColumns = db.prepare("PRAGMA table_info(Attendance)").all();
   const attendanceColumnNames = attendanceColumns.map((c: any) => c.name);
   if (!attendanceColumnNames.includes("student_name")) {
-    await db.exec("ALTER TABLE Attendance ADD COLUMN student_name TEXT");
+    db.exec("ALTER TABLE Attendance ADD COLUMN student_name TEXT");
   }
   if (!attendanceColumnNames.includes("student_index_number")) {
-    await db.exec("ALTER TABLE Attendance ADD COLUMN student_index_number TEXT");
+    db.exec("ALTER TABLE Attendance ADD COLUMN student_index_number TEXT");
   }
   if (!attendanceColumnNames.includes("student_email")) {
-    await db.exec("ALTER TABLE Attendance ADD COLUMN student_email TEXT");
+    db.exec("ALTER TABLE Attendance ADD COLUMN student_email TEXT");
   }
 
   // Enable WAL mode for better concurrency
-  await db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA journal_mode = WAL");
 
   // Create indexes for performance
-  await db.exec(`
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_attendance_student ON Attendance(student_id);
     CREATE INDEX IF NOT EXISTS idx_attendance_session ON Attendance(session_id);
     CREATE INDEX IF NOT EXISTS idx_attendance_class ON Attendance(class_id);
@@ -131,32 +150,29 @@ export async function initializeDatabase() {
   `);
 
   // Create demo users if not exists
-  const demoPassword = await bcrypt.hash("password", 10);
+  const demoPassword = bcrypt.hashSync("password", 10);
   
-  const adminExists = await db.get("SELECT id FROM Users WHERE email = 'admin@demo.com'");
+  const adminExists = db.prepare("SELECT id FROM Users WHERE email = 'admin@demo.com'").get();
   if (!adminExists) {
-    await db.run(
-      "INSERT INTO Users (id, username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?, ?)",
-      ["admin-demo-1", "admin_demo", "admin@demo.com", demoPassword, "admin", "IT"]
-    );
+    db.prepare(
+      "INSERT INTO Users (id, username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run("admin-demo-1", "admin_demo", "admin@demo.com", demoPassword, "admin", "IT");
     console.log("Demo admin created: admin@demo.com / password");
   }
 
-  const lecturerExists = await db.get("SELECT id FROM Users WHERE email = 'lecturer@demo.com'");
+  const lecturerExists = db.prepare("SELECT id FROM Users WHERE email = 'lecturer@demo.com'").get();
   if (!lecturerExists) {
-    await db.run(
-      "INSERT INTO Users (id, username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?, ?)",
-      ["lecturer-demo-1", "lecturer_demo", "lecturer@demo.com", demoPassword, "lecturer", "Computer Science"]
-    );
+    db.prepare(
+      "INSERT INTO Users (id, username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run("lecturer-demo-1", "lecturer_demo", "lecturer@demo.com", demoPassword, "lecturer", "Computer Science");
     console.log("Demo lecturer created: lecturer@demo.com / password");
   }
 
-  const studentExists = await db.get("SELECT id FROM Users WHERE email = 'student@demo.com'");
+  const studentExists = db.prepare("SELECT id FROM Users WHERE email = 'student@demo.com'").get();
   if (!studentExists) {
-    await db.run(
-      "INSERT INTO Users (id, username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?, ?)",
-      ["student-demo-1", "student_demo", "student@demo.com", demoPassword, "student", "Computer Science"]
-    );
+    db.prepare(
+      "INSERT INTO Users (id, username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run("student-demo-1", "student_demo", "student@demo.com", demoPassword, "student", "Computer Science");
     console.log("Demo student created: student@demo.com / password");
   }
 }
