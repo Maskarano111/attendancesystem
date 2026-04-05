@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { fetchApi } from '../lib/api';
 import { CheckCircle, XCircle, Loader, User, Hash, Mail } from 'lucide-react';

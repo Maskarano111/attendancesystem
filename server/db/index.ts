@@ -68,6 +68,18 @@ class DatabaseWrapper {
     };
   }
 
+  get(sql: string, params: any[] = []) {
+    return this.prepare(sql).get(...params);
+  }
+
+  all(sql: string, params: any[] = []) {
+    return this.prepare(sql).all(...params);
+  }
+
+  run(sql: string, params: any[] = []) {
+    return this.prepare(sql).run(...params);
+  }
+
   exec(sql: string) {
     try {
       const statements = sql.split(';').filter(s => s.trim());

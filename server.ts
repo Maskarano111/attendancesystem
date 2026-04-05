@@ -18,7 +18,7 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 8000;
+  const PORT = parseInt(process.env.PORT || '8000', 10);
 
   // Middleware
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:8000", "http://localhost:5173"];

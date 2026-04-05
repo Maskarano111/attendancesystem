@@ -21,9 +21,8 @@ export const errorHandler = (
   const message = err.message || "Internal Server Error";
 
   // Log error details
-  logger.error({
+  logger.error(`Error: ${message}`, {
     statusCode,
-    message,
     stack: err.stack,
     method: req.method,
     url: req.url,
