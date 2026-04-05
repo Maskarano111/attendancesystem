@@ -81,6 +81,34 @@ INSERT INTO users (username, email, password_hash, role, department, is_active) 
 ('lecturer_demo', 'lecturer@demo.com', '$2b$10$t.XV0ImOc1M5WnkrAo89kusyrm4UEMoBphxx0PRJqbD8ehGfwJHHO', 'lecturer', 'Engineering', true),
 ('student_demo', 'student@demo.com', '$2b$10$t.XV0ImOc1M5WnkrAo89kusyrm4UEMoBphxx0PRJqbD8ehGfwJHHO', 'student', 'Engineering', true);
 
+-- Step 8: Insert Demo Classes with Lecturer Assignment
+-- Get lecturer_id from users table
+INSERT INTO classes (name, code, lecturer_id, department, schedule, capacity) VALUES
+(
+  'Introduction to Web Development',
+  'CSC101',
+  (SELECT id FROM users WHERE email = 'lecturer@demo.com'),
+  'Engineering',
+  'Monday, Wednesday 2:00 PM - 3:30 PM',
+  40
+),
+(
+  'Database Management Systems',
+  'CSC201',
+  (SELECT id FROM users WHERE email = 'lecturer@demo.com'),
+  'Engineering',
+  'Tuesday, Thursday 10:00 AM - 11:30 AM',
+  35
+),
+(
+  'Data Structures & Algorithms',
+  'CSC102',
+  (SELECT id FROM users WHERE email = 'lecturer@demo.com'),
+  'Engineering',
+  'Monday, Wednesday, Friday 9:00 AM - 9:50 AM',
+  45
+);
+
 -- ============================================================
 -- ✅ Database Setup Complete!
 -- ============================================================
@@ -88,4 +116,9 @@ INSERT INTO users (username, email, password_hash, role, department, is_active) 
 --   Admin:    admin@demo.com / password
 --   Lecturer: lecturer@demo.com / password
 --   Student:  student@demo.com / password
+--
+-- Demo Classes:
+--   1. Introduction to Web Development (CSC101) - 40 students
+--   2. Database Management Systems (CSC201) - 35 students
+--   3. Data Structures & Algorithms (CSC102) - 45 students
 -- ============================================================
