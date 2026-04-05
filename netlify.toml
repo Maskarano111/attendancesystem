@@ -82,6 +82,18 @@
   force = true
 
 [[redirects]]
+  from = "/api/sessions/create*"
+  to = "/.netlify/functions/sessions-create"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/qr/generate*"
+  to = "/.netlify/functions/qr-generate"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
