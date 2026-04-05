@@ -1,6 +1,7 @@
 import { Handler } from '@netlify/functions';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import QRCode from 'qrcode';
 import { supabase } from './lib/supabase';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-prod';
@@ -110,6 +111,21 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    console.log('[qr-generate] Generating QR code image');
+    
+    // Generate actual QR code image as PNG data URL
+    const qrCodeImage = await QRCode.toDataURL(qrCodeString, {
+      errorCorrectionLevel: 'H',
+      type: 'image/png',
+      quality: 0.95,
+      margin: 1,
+      width: 300,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+
     console.log('[qr-generate] QR generated successfully');
     return {
       statusCode: 201,
@@ -119,7 +135,7 @@ export const handler: Handler = async (event) => {
         message: 'QR Code generated successfully',
         data: {
           session_id: sessionId,
-          qr_code_image: `data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="white"/><text x="100" y="100" text-anchor="middle" dominant-baseline="middle" font-size="12" font-family="monospace">${sessionId.substring(0, 8)}</text></svg>`).toString('base64')}`,
+          qr_code_image: qrCodeImage,
           qr_code_data: qrCodeString
         }
       })
