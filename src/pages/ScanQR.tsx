@@ -23,28 +23,54 @@ export default function ScanQR() {
   useEffect(() => {
     if (!scanning) return;
 
-    const scanner = new Html5QrcodeScanner(
-      'reader',
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+    let scanner: Html5QrcodeScanner | null = null;
+    
+    const initScanner = async () => {
+      try {
+        scanner = new Html5QrcodeScanner(
+          'reader',
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          },
+          false
+        );
 
-    scanner.render(
-      async (decodedText) => {
-        scanner.clear();
-        setScanResult(decodedText);
-        setScanning(false);
-        setShowForm(true);
-        setError(null);
-        setFormData({ student_name: '', student_index_number: '', student_email: '' });
-      },
-      (err) => {
-        // Ignore scan errors
+        await scanner.render(
+          async (decodedText) => {
+            try {
+              if (scanner) {
+                await scanner.clear();
+              }
+            } catch (e) {
+              console.error('Error clearing scanner:', e);
+            }
+            setScanResult(decodedText);
+            setScanning(false);
+            setShowForm(true);
+            setError(null);
+            setFormData({ student_name: '', student_index_number: '', student_email: '' });
+          },
+          (err) => {
+            // Ignore QR not detected errors, but log other errors
+            if (err && !err.includes('QR code parse error')) {
+              console.log('[ScanQR] Scanner error:', err);
+            }
+          }
+        );
+      } catch (err: any) {
+        console.error('[ScanQR] Failed to initialize scanner:', err);
+        setError(`Camera error: ${err.message || 'Unable to access camera. Please check permissions.'}`);
       }
-    );
+    };
+
+    initScanner();
 
     return () => {
-      scanner.clear().catch(console.error);
+      if (scanner) {
+        scanner.clear().catch((err) => console.error('Cleanup error:', err));
+      }
     };
   }, [scanning]);
 
@@ -121,13 +147,28 @@ export default function ScanQR() {
       {!showForm && (
         <Card className="animate-fade-in">
           <CardBody>
-            <div id="reader" className="w-full overflow-hidden rounded-lg"></div>
-            
-            {scanning && (
-              <div className="mt-4 flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400">
-                <Loader className="h-5 w-5 animate-spin" />
-                <span>Waiting for QR code...</span>
-              </div>
+            {error ? (
+              <Alert type="error" onClose={() => setError(null)}>
+                <div className="flex items-center gap-3">
+                  <XCircle className="h-5 w-5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold">Camera Error</p>
+                    <p className="text-sm mt-1">{error}</p>
+                    <p className="text-xs mt-2 opacity-75">Make sure to allow camera access when prompted</p>
+                  </div>
+                </div>
+              </Alert>
+            ) : (
+              <>
+                <div id="reader" className="w-full rounded-lg overflow-hidden" style={{ minHeight: '400px' }}></div>
+                
+                {scanning && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400">
+                    <Loader className="h-5 w-5 animate-spin" />
+                    <span>Waiting for QR code...</span>
+                  </div>
+                )}
+              </>
             )}
           </CardBody>
         </Card>
