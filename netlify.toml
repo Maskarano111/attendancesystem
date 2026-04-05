@@ -40,6 +40,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/attendance/mark*"
+  to = "/.netlify/functions/attendance-mark"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/attendance/sessions*"
   to = "/.netlify/functions/attendance-sessions"
   status = 200
@@ -98,4 +104,5 @@
   REFRESH_SECRET = "your-super-secret-refresh-key-change-in-prod"
   SUPABASE_URL = "https://xvncrfmuejqmcdcscrze.supabase.co"
   SUPABASE_ANON_KEY = "sb_publishable_hV-N1VgT8d8Q5Cxd0v7clA_OZEWgwzA"
+  SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2bmNyZm11ZWpxbWNkY3NjcnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDIyMTYsImV4cCI6MjA5MDg3ODIxNn0.MgqxBb6N7TQ5liIHsebxN0UIy-7yiq1ndd_MXJ9ETRg"
   SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2bmNyZm11ZWpxbWNkY3NjcnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDIyMTYsImV4cCI6MjA5MDg3ODIxNn0.MgqxBb6N7TQ5liIHsebxN0UIy-7yiq1ndd_MXJ9ETRg"
