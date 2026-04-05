@@ -16,9 +16,22 @@
   port = 8000
 
 [[redirects]]
-  from = "/api/auth/*"
-  to = "/.netlify/functions/auth:splat"
+  from = "/api/auth/login*"
+  to = "/.netlify/functions/auth-login"
   status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/auth/register*"
+  to = "/.netlify/functions/auth-register"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/auth/refresh*"
+  to = "/.netlify/functions/auth-refresh"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/api/attendance/*"
