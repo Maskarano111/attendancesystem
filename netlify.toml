@@ -34,19 +34,40 @@
   force = true
 
 [[redirects]]
-  from = "/api/attendance/*"
-  to = "/.netlify/functions/attendance:splat"
+  from = "/api/attendance/records*"
+  to = "/.netlify/functions/attendance-records"
   status = 200
+  force = true
 
 [[redirects]]
-  from = "/api/classes/*"
-  to = "/.netlify/functions/classes:splat"
+  from = "/api/attendance/sessions*"
+  to = "/.netlify/functions/attendance-sessions"
   status = 200
+  force = true
 
 [[redirects]]
-  from = "/api/qr/*"
-  to = "/.netlify/functions/qr:splat"
+  from = "/api/admin/reports*"
+  to = "/.netlify/functions/admin-reports"
   status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/audit*"
+  to = "/.netlify/functions/admin-audit"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/sessions*"
+  to = "/.netlify/functions/admin-sessions"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/settings*"
+  to = "/.netlify/functions/admin-settings"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
