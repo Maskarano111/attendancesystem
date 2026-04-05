@@ -9,7 +9,21 @@ const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-super-secret-refresh-
 
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
-  const body = event.body ? JSON.parse(event.body) : {};
+  const path = event.path || '';
+  
+  console.log(`[Auth Function] Method: ${method}, Path: ${path}, Body: ${event.body}`);
+  
+  let body;
+  try {
+    body = event.body ? JSON.parse(event.body) : {};
+  } catch (e) {
+    console.error('[Auth Function] JSON parse error:', e);
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'error', message: 'Invalid JSON' })
+    };
+  }
 
   // Enable CORS
   const headers = {
@@ -24,22 +38,26 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    if (event.path.includes('/login')) {
+    if (path.includes('/login')) {
+      console.log('[Auth Function] Handling login');
       return await handleLogin(body, headers);
-    } else if (event.path.includes('/register')) {
+    } else if (path.includes('/register')) {
+      console.log('[Auth Function] Handling register');
       return await handleRegister(body, headers);
-    } else if (event.path.includes('/refresh')) {
+    } else if (path.includes('/refresh')) {
+      console.log('[Auth Function] Handling refresh');
       return await handleRefresh(body, headers);
     }
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error('[Auth Function] Error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ status: 'error', message: 'Server error' })
+      body: JSON.stringify({ status: 'error', message: 'Server error', error: String(error) })
     };
   }
 
+  console.log('[Auth Function] Path not matched, returning 404');
   return {
     statusCode: 404,
     headers,
@@ -49,6 +67,7 @@ export const handler: Handler = async (event) => {
 
 async function handleLogin(body: any, headers: any) {
   const { email, password } = body;
+  console.log('[handleLogin] Email:', email);
 
   const { data: user, error } = await supabase
     .from('users')
@@ -56,7 +75,11 @@ async function handleLogin(body: any, headers: any) {
     .eq('email', email)
     .single();
 
+  console.log('[handleLogin] Supabase error:', error);
+  console.log('[handleLogin] User found:', !!user);
+
   if (error || !user) {
+    console.log('[handleLogin] User not found or error');
     return {
       statusCode: 401,
       headers,
