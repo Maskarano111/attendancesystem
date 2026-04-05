@@ -74,12 +74,12 @@ CREATE TABLE audit_logs (
 
 -- Step 7: Insert Demo Users
 -- Password for all: "password"
--- Hash: $2a$10$wIzLSuE5bAEkK/cJ5NvOOe9/PcqtL8nNsG1b5L5Z1H5w9tQs2L8Pm
+-- Hash: $2b$10$t.XV0ImOc1M5WnkrAo89kusyrm4UEMoBphxx0PRJqbD8ehGfwJHHO
 
 INSERT INTO users (username, email, password_hash, role, department, is_active) VALUES
-('admin_demo', 'admin@demo.com', '$2a$10$wIzLSuE5bAEkK/cJ5NvOOe9/PcqtL8nNsG1b5L5Z1H5w9tQs2L8Pm', 'admin', 'IT', true),
-('lecturer_demo', 'lecturer@demo.com', '$2a$10$wIzLSuE5bAEkK/cJ5NvOOe9/PcqtL8nNsG1b5L5Z1H5w9tQs2L8Pm', 'lecturer', 'Engineering', true),
-('student_demo', 'student@demo.com', '$2a$10$wIzLSuE5bAEkK/cJ5NvOOe9/PcqtL8nNsG1b5L5Z1H5w9tQs2L8Pm', 'student', 'Engineering', true);
+('admin_demo', 'admin@demo.com', '$2b$10$t.XV0ImOc1M5WnkrAo89kusyrm4UEMoBphxx0PRJqbD8ehGfwJHHO', 'admin', 'IT', true),
+('lecturer_demo', 'lecturer@demo.com', '$2b$10$t.XV0ImOc1M5WnkrAo89kusyrm4UEMoBphxx0PRJqbD8ehGfwJHHO', 'lecturer', 'Engineering', true),
+('student_demo', 'student@demo.com', '$2b$10$t.XV0ImOc1M5WnkrAo89kusyrm4UEMoBphxx0PRJqbD8ehGfwJHHO', 'student', 'Engineering', true);
 
 -- ============================================================
 -- ✅ Database Setup Complete!
