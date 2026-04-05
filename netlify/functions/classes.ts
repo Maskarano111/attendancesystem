@@ -29,47 +29,102 @@ export const handler: Handler = async (event) => {
   try {
     const user = await verifyToken(event);
 
-    if (event.httpMethod !== 'GET') {
+    if (event.httpMethod === 'GET') {
+      // Get classes based on user role
+      let query = supabase.from('classes').select('*');
+
+      // If lecturer, only show their classes
+      if (user.role === 'lecturer') {
+        query = query.eq('lecturer_id', user.id);
+      }
+      // If student, show all classes
+      // If admin, show all classes
+
+      const { data: classes, error } = await query.order('name', { ascending: true });
+
+      if (error) {
+        console.error('[classes] Database error:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ 
+            status: 'error', 
+            message: 'Failed to fetch classes',
+            data: { classes: [] }
+          })
+        };
+      }
+
+      console.log('[classes] Success - returned', classes?.length || 0, 'classes');
       return {
-        statusCode: 405,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ status: 'error', message: 'Method not allowed' })
+        body: JSON.stringify({
+          status: 'success',
+          data: { classes: classes || [] }
+        })
       };
-    }
+    } else if (event.httpMethod === 'POST') {
+      // Create new class (admin/lecturer only)
+      if (user.role !== 'admin' && user.role !== 'lecturer') {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ status: 'error', message: 'Forbidden - only admins and lecturers can create classes' })
+        };
+      }
 
-    // Get classes based on user role
-    let query = supabase.from('classes').select('*');
+      const body = event.body ? JSON.parse(event.body) : {};
+      const { name, code, department, schedule, capacity } = body;
 
-    // If lecturer, only show their classes
-    if (user.role === 'lecturer') {
-      query = query.eq('lecturer_id', user.id);
-    }
-    // If student, show all classes
-    // If admin, show all classes
+      console.log('[classes] Creating new class:', { name, code });
 
-    const { data: classes, error } = await query.order('name', { ascending: true });
+      if (!name || !code) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ status: 'error', message: 'Name and code required' })
+        };
+      }
 
-    if (error) {
-      console.error('[classes] Database error:', error);
+      const { data: newClass, error } = await supabase
+        .from('classes')
+        .insert({
+          name,
+          code,
+          lecturer_id: user.role === 'lecturer' ? user.id : null,
+          department: department || null,
+          schedule: schedule || null,
+          capacity: capacity || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[classes] Insert error:', error);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ status: 'error', message: 'Failed to create class - check if code already exists' })
+        };
+      }
+
+      console.log('[classes] Class created successfully');
       return {
-        statusCode: 500,
+        statusCode: 201,
         headers,
-        body: JSON.stringify({ 
-          status: 'error', 
-          message: 'Failed to fetch classes',
-          data: { classes: [] }
+        body: JSON.stringify({
+          status: 'success',
+          message: 'Class created successfully',
+          data: { class: newClass }
         })
       };
     }
 
-    console.log('[classes] Success - returned', classes?.length || 0, 'classes');
     return {
-      statusCode: 200,
+      statusCode: 405,
       headers,
-      body: JSON.stringify({
-        status: 'success',
-        data: { classes: classes || [] }
-      })
+      body: JSON.stringify({ status: 'error', message: 'Method not allowed' })
     };
   } catch (error: any) {
     console.error('[classes] Error:', error);
