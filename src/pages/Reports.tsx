@@ -59,6 +59,12 @@ export default function Reports() {
             qr_expiry_minutes: settingsRes.data.settings?.qr_expiry_minutes || 10,
             attendance_rules: settingsRes.data.settings?.attendance_rules || ''
           });
+        } else if (user?.role === 'lecturer') {
+          const res = await fetchApi('/lecturer/reports');
+          setStats(res.data);
+
+          const sessionsRes = await fetchApi('/attendance/sessions');
+          setSessions(sessionsRes.data?.sessions || []);
         } else {
           const recordsRes = await fetchApi('/attendance/records');
           const records = recordsRes.data?.records || [];

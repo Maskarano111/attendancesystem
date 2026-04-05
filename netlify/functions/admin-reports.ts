@@ -46,17 +46,22 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Get all attendance stats
+    // Get all attendance stats with session and class info
     const { data: attendanceStats, error: statsError } = await supabase
       .from('attendance')
       .select(`
         id,
         student_id,
+        student_name,
+        student_email,
         session_id,
         status,
         timestamp,
-        class_id,
-        classes:class_id(id, name, code)
+        sessions(
+          id,
+          class_id,
+          classes(id, name, code)
+        )
       `)
       .order('timestamp', { ascending: false });
 
@@ -113,7 +118,7 @@ export const handler: Handler = async (event) => {
 function groupByClass(records: any[]) {
   const map = new Map<string, number>();
   records.forEach(r => {
-    const className = r.classes?.name || 'Unknown Class';
+    const className = r.sessions?.classes?.name || 'Unknown Class';
     map.set(className, (map.get(className) || 0) + 1);
   });
   return Array.from(map.entries()).map(([class_name, attendance_count]) => ({

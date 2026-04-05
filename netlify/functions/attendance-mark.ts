@@ -120,7 +120,6 @@ export const handler: Handler = async (event) => {
         id: uuidv4(),
         student_id: user.id,
         session_id: session_id,
-        class_id: class_id || session.class_id,
         timestamp: new Date().toISOString(),
         status: 'present',
         student_name: student_name || user.username,
