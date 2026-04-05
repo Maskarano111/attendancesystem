@@ -43,21 +43,14 @@ export default function LecturerDashboard() {
           setClasses(getMockClasses());
         }
         
-        // Load sessions with fallback
+        // Load lecturer reports (includes sessions and attendance)
         try {
-          const sessionsRes = await fetchApi('/attendance/sessions');
-          setSessions(sessionsRes.data?.sessions || getMockSessions());
+          const reportsRes = await fetchApi('/lecturer/reports');
+          setSessions(reportsRes.data?.sessions || getMockSessions());
+          setAttendanceRecords(reportsRes.data?.attendance_records || getMockAttendanceRecords());
         } catch (e) {
-          console.warn('Sessions API failed, using mock data');
+          console.warn('Reports API failed, using mock data');
           setSessions(getMockSessions());
-        }
-
-        // Load attendance records with fallback
-        try {
-          const recordsRes = await fetchApi('/attendance/records');
-          setAttendanceRecords(recordsRes.data?.records || getMockAttendanceRecords());
-        } catch (e) {
-          console.warn('Attendance records API failed, using mock data');
           setAttendanceRecords(getMockAttendanceRecords());
         }
       } catch (err: any) {
@@ -88,9 +81,36 @@ export default function LecturerDashboard() {
   ];
 
   const getMockAttendanceRecords = () => [
-    { id: '1', student_name: 'Amina Bello', class_name: 'Data Structures', session_date: new Date().toISOString().split('T')[0], status: 'present' },
-    { id: '2', student_name: 'Chinedu Okafor', class_name: 'Web Development', session_date: new Date().toISOString().split('T')[0], status: 'present' },
-    { id: '3', student_name: 'Fatima Yusuf', class_name: 'Database Systems', session_date: new Date().toISOString().split('T')[0], status: 'present' },
+    { 
+      id: '1', 
+      student_name: 'Amina Bello', 
+      student_email: 'amina.bello@institution.edu',
+      student_index_number: 'CS001',
+      class_name: 'Data Structures', 
+      session_date: new Date().toISOString().split('T')[0], 
+      status: 'present',
+      timestamp: new Date().toISOString()
+    },
+    { 
+      id: '2', 
+      student_name: 'Chinedu Okafor', 
+      student_email: 'chinedu.okafor@institution.edu',
+      student_index_number: 'CS002',
+      class_name: 'Web Development', 
+      session_date: new Date().toISOString().split('T')[0], 
+      status: 'present',
+      timestamp: new Date().toISOString()
+    },
+    { 
+      id: '3', 
+      student_name: 'Fatima Yusuf', 
+      student_email: 'fatima.yusuf@institution.edu',
+      student_index_number: 'CS003',
+      class_name: 'Database Systems', 
+      session_date: new Date().toISOString().split('T')[0], 
+      status: 'present',
+      timestamp: new Date().toISOString()
+    },
   ];
 
   if (loading) {
@@ -335,9 +355,11 @@ export default function LecturerDashboard() {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Student</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Student Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Index Number</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Email</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Class</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Time</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider dark:text-gray-400">Status</th>
                   </tr>
                 </thead>
@@ -345,9 +367,11 @@ export default function LecturerDashboard() {
                   {recentRecords.map((record: any) => (
                     <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{record.student_name || 'Student'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{record.student_index_number || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{record.student_email || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{record.class_name || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {record.session_date ? new Date(record.session_date).toLocaleDateString() : 'N/A'}
+                        {record.timestamp ? new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">

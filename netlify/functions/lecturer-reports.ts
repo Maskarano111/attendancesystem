@@ -90,6 +90,7 @@ export const handler: Handler = async (event) => {
         student_id,
         student_name,
         student_email,
+        student_index_number,
         status,
         timestamp,
         sessions(
@@ -107,6 +108,21 @@ export const handler: Handler = async (event) => {
     if (attendanceError) {
       console.error('[lecturer-reports] Error fetching attendance:', attendanceError);
     }
+
+    // Transform attendance records to match frontend expectations
+    const transformedAttendance = (attendanceRecords || []).map((record: any) => ({
+      id: record.id,
+      student_id: record.student_id,
+      student_name: record.student_name,
+      student_email: record.student_email,
+      student_index_number: record.student_index_number,
+      status: record.status,
+      timestamp: record.timestamp,
+      class_name: record.sessions?.classes?.name || 'Unknown Class',
+      class_code: record.sessions?.classes?.code,
+      session_date: record.sessions?.date,
+      session_id: record.sessions?.id
+    }));
 
     // Get sessions for lecturer's classes
     const { data: sessions, error: sessionError } = await supabase
@@ -137,7 +153,8 @@ export const handler: Handler = async (event) => {
       total_attendance_records: attendanceRecords?.length || 0,
       attendanceStats,
       sessions: sessions || [],
-      classDetails
+      classDetails,
+      attendance_records: transformedAttendance
     };
 
     console.log('[lecturer-reports] Success - generated report for', classes?.length || 0, 'classes');

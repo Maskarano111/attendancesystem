@@ -123,7 +123,8 @@ export const handler: Handler = async (event) => {
         timestamp: new Date().toISOString(),
         status: 'present',
         student_name: student_name || user.username,
-        student_email: student_email || user.email
+        student_email: student_email || user.email,
+        student_index_number: student_index_number || ''
       });
 
     if (insertError) {
