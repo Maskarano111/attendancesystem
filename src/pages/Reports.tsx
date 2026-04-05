@@ -62,6 +62,9 @@ export default function Reports() {
         } else if (user?.role === 'lecturer') {
           const res = await fetchApi('/lecturer/reports');
           setStats(res.data);
+          
+          // Get all attendance records from the report
+          setAttendanceRecords(res.data?.attendance_records || []);
 
           const sessionsRes = await fetchApi('/attendance/sessions');
           setSessions(sessionsRes.data?.sessions || []);
@@ -125,28 +128,49 @@ export default function Reports() {
   };
 
   const handleExport = async () => {
-    if (!stats || !stats.attendanceStats) return;
-    
     setExporting(true);
     try {
-      const headers = ['Class Name', 'Attendance Count', 'Percentage'];
-      const totalExpected = stats.attendanceStats.length * 30;
-      const rows = stats.attendanceStats.map((s: any) => [
-        s.class_name,
-        s.attendance_count,
-        `${((s.attendance_count / (totalExpected || 1)) * 100).toFixed(2)}%`
+      let dataToExport: any[] = [];
+      let fileName = `attendance_report_${new Date().toISOString().split('T')[0]}.csv`;
+
+      if (user?.role === 'lecturer') {
+        // For lecturers, export detailed attendance records
+        dataToExport = attendanceRecords;
+      } else if (user?.role === 'admin' || user?.role === 'department_head') {
+        // For admins, export all attendance records
+        dataToExport = attendanceRecords;
+      } else {
+        // For students, export their own records
+        dataToExport = attendanceRecords;
+      }
+
+      if (dataToExport.length === 0) {
+        alert('No records to export');
+        return;
+      }
+
+      // Create CSV with detailed attendance information
+      const headers = ['Student Name', 'Index Number', 'Email', 'Class', 'Date', 'Time', 'Status'];
+      const rows = dataToExport.map((record: any) => [
+        record.student_name || '-',
+        record.student_index_number || '-',
+        record.student_email || '-',
+        record.class_name || '-',
+        record.session_date ? new Date(record.session_date).toLocaleDateString() : (record.timestamp ? new Date(record.timestamp).toLocaleDateString() : '-'),
+        record.timestamp ? new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+        record.status || 'present'
       ]);
       
       const csvContent = [
         headers.join(','),
-        ...rows.map((row: any) => row.join(','))
+        ...rows.map((row: any) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
       ].join('\n');
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `attendance_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', fileName);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();

@@ -82,49 +82,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Get attendance records for all lecturer's classes
-    const { data: attendanceRecords, error: attendanceError } = await supabase
-      .from('attendance')
-      .select(`
-        id,
-        student_id,
-        student_name,
-        student_email,
-        student_index_number,
-        status,
-        timestamp,
-        sessions(
-          id,
-          class_id,
-          date,
-          start_time,
-          end_time,
-          classes(id, name, code)
-        )
-      `)
-      .in('sessions.class_id', classIds)
-      .order('timestamp', { ascending: false });
-
-    if (attendanceError) {
-      console.error('[lecturer-reports] Error fetching attendance:', attendanceError);
-    }
-
-    // Transform attendance records to match frontend expectations
-    const transformedAttendance = (attendanceRecords || []).map((record: any) => ({
-      id: record.id,
-      student_id: record.student_id,
-      student_name: record.student_name,
-      student_email: record.student_email,
-      student_index_number: record.student_index_number,
-      status: record.status,
-      timestamp: record.timestamp,
-      class_name: record.sessions?.classes?.name || 'Unknown Class',
-      class_code: record.sessions?.classes?.code,
-      session_date: record.sessions?.date,
-      session_id: record.sessions?.id
-    }));
-
-    // Get sessions for lecturer's classes
+    // Get all sessions for lecturer's classes
     const { data: sessions, error: sessionError } = await supabase
       .from('sessions')
       .select(`
@@ -142,6 +100,57 @@ export const handler: Handler = async (event) => {
     if (sessionError) {
       console.error('[lecturer-reports] Error fetching sessions:', sessionError);
     }
+
+    // Get session IDs for attendance query
+    const sessionIds = (sessions || []).map((s: any) => s.id);
+
+    // Get attendance records for these sessions
+    let attendanceRecords: any[] = [];
+    if (sessionIds.length > 0) {
+      const { data: records, error: attendanceError } = await supabase
+        .from('attendance')
+        .select(`
+          id,
+          student_id,
+          student_name,
+          student_email,
+          student_index_number,
+          status,
+          timestamp,
+          session_id,
+          sessions(
+            id,
+            class_id,
+            date,
+            start_time,
+            end_time,
+            classes(id, name, code)
+          )
+        `)
+        .in('session_id', sessionIds)
+        .order('timestamp', { ascending: false });
+
+      if (attendanceError) {
+        console.error('[lecturer-reports] Error fetching attendance:', attendanceError);
+      }
+      
+      attendanceRecords = records || [];
+    }
+
+    // Transform attendance records to match frontend expectations
+    const transformedAttendance = (attendanceRecords || []).map((record: any) => ({
+      id: record.id,
+      student_id: record.student_id,
+      student_name: record.student_name,
+      student_email: record.student_email,
+      student_index_number: record.student_index_number,
+      status: record.status,
+      timestamp: record.timestamp,
+      class_name: record.sessions?.classes?.name || 'Unknown Class',
+      class_code: record.sessions?.classes?.code,
+      session_date: record.sessions?.date,
+      session_id: record.sessions?.id
+    }));
 
     // Build statistics
     const attendanceStats = groupByClass(attendanceRecords || []);
@@ -189,7 +198,7 @@ export const handler: Handler = async (event) => {
 function groupByClass(records: any[]) {
   const map = new Map<string, number>();
   records.forEach(r => {
-    const className = r.sessions?.classes?.name || 'Unknown Class';
+    const className = r.class_name || 'Unknown Class';
     map.set(className, (map.get(className) || 0) + 1);
   });
   return Array.from(map.entries()).map(([class_name, attendance_count]) => ({
@@ -200,7 +209,7 @@ function groupByClass(records: any[]) {
 
 function buildClassDetails(classes: any[], sessions: any[], attendance: any[]) {
   return classes.map(cls => {
-    const classAttendance = attendance.filter((a: any) => a.sessions?.class_id === cls.id);
+    const classAttendance = attendance.filter((a: any) => a.class_name === cls.name);
     const classSessions = sessions.filter((s: any) => s.class_id === cls.id);
     
     return {
